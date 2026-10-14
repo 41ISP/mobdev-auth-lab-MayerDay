@@ -29,6 +29,9 @@ const NavBar = () => {
                             <li>
                                 <Link to={'/logout'}>Выйти</Link>
                             </li>
+                               <li>
+                                <Link to={'/bids'}>Мои ставки</Link>
+                            </li>
                         </>
                         )}
                     </ul>

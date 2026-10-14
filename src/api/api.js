@@ -24,7 +24,7 @@ const getItems = async () => {
 
 
 const createBid = async ({ id, amount }) => {
-    const res = await apiInstance.post('/items/${id}/bids', {amount})
+    const res = await apiInstance.post(`/items/${id}/bids`, {amount})
     return res
 }
 
@@ -74,13 +74,17 @@ const getItemBids = async (id) => {
 
 }
 
-const getMyBids = async (id) => {
-    const res = await apiInstance.get(`/items/${id}/bids`)
+const getMyBids = async () => {
+    const res = await apiInstance.get(`/bids/my`)
     return res
 }
 
+const getItem = async (id) => {
+    const res = await apiInstance.get(`/items/${id}`)
+    return res
+}
 const authMe = async () => {
-    const res = await apiInstance.getUri("/auth/me")
+    const res = await apiInstance.get("/auth/me")
     return res
 
 }
@@ -94,6 +98,7 @@ export const api = {
     getItems,
     reportItem,
     getStats,
+    getItem,
     getMyItem,
     deleteItem,
     getItemBids,

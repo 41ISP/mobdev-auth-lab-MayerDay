@@ -1,76 +1,77 @@
-import { Link, useParams } from "react-router-dom"
+import { Link, useNavigate, useParams } from "react-router-dom"
 import Input from "../components/Input"
 import Button from "../components/Button"
 import { useItemStore } from "../store/useItemStore"
 import { api } from "../api/api"
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { useUserStore } from "../store/useUserStore"
 
 const ItemDetail = () => {
-    const {id} = useParams()
+    const { id } = useParams()
     const session = useUserStore((state) => state.session)
-    const item = useItemStore((state) => state.item)
-    const getItems = useItemStore((state) => state.getItems)
+    const [item, setItem] = useState(undefined)
     const [error, setError] = useState('')
     const [bids, setBids] = useState([])
-   
-    useEffect(() => {
-        if (!item) { getItems(id) }
-
+    const navigate = useNavigate()
+    
     const loadBids = async () => {
-        try { 
-            const data = await api.getItemBids(id)
-            setBids(data)
+        try {
+            const res = await api.getItemBids(id)
+            setBids(res.data)
         } catch (err) {
             console.error('Не удалось загрузить историю ставок:', err)
         }
     }
-    loadBids() 
-}, [id, item, getItems])
+
+    useEffect(() => {
+        const loadItem = async () => {
+            const res = await api.getItem(id)
+            setItem(res.data)
+        }
+
+        loadItem()
+        loadBids()
+    }, [id])
 
 
-if (!item) return <div className="container">Загрузка...</div>
+    if (!item) return <div className="container">Загрузка...</div>
 
     const handleBid = async (e) => {
         e.preventDefault()
         setError('')
 
-    const form = e.target 
-    const amount = Number(form.bidInput.value)
-    if (!amount || amount <= 0) { 
-        setError('Введите корректную сумму ставки')
-        return 
+        const form = e.target
+        const amount = Number(form.bidInput.value)
+        if (!amount || amount <= 0) {
+            setError('Введите корректную сумму ставки')
+            return
+        }
+
+        try {
+            await api.createBid({ id, amount })
+            form.reset()
+            await loadBids()
+
+        } catch (err) {
+            setError(err.message || 'Не удалось сделать ставку')
+        }
     }
 
-    try {
-        await api.createBid({ id, amount })
-        form.reset()
-        await getItems()
 
-        const data = await api.getItemBids(id)
-        setBids(data)
+    const displayBid = item.highestBid === null ? 'ставок нет' : item.highestBid
+    const minBidValue = item.highestBid ?? item.price
+    const formattedDate = new Date(item.createdAt).toLocaleString("ru-RU")
 
-    } catch (err) {
-        setError(err.message || 'Не удалось сделать ставку')
+    const isOwner = session?.user?.id === item.userId
+
+    const handleDelete = async () => {
+        try {
+            await api.deleteItem(id)
+            navigate("/")
+        } catch (err) {
+            setError(err.message || 'Не удалось удалить товар')
+        }
     }
-}
-    
-
-const displayBid = item.highestBid === null ? 'ставок нет' : item.highestBid 
-const minBidValue = item.highestBid ?? item.price 
-const formattedDate = new Date(item.createdAt).toLocaleString("ru-RU")
-
-const isOwner = session?.user?.id === item.userId
-
-const handleDelete = async () => {
-    try { 
-        await api.deleteItem(id)
-        await getItems()
-        window.location.href = "/"
-    } catch (err) {
-        setError(err.message || 'Не удалось удалить товар')
-    }
-}
 
     return (
         <div className="container">
@@ -80,14 +81,14 @@ const handleDelete = async () => {
             <div class="item-detail">
                 <div class="item-header">
                     <div>
-                         <img src={item.imageUrl} class="item-image-large" />
+                        <img src={item.imageUrl} class="item-image-large" />
                     </div>
 
                     <div class="item-info">
                         <span class="item-status">{item.status}</span>
-                            
+
                         <h1 class="item-title-large">{item.title}</h1>
-                            
+
                         <div class="item-seller-info">
                             <div class="seller-avatar">
                                 {item.username.slice(0, 2).toUpperCase()}
@@ -109,27 +110,27 @@ const handleDelete = async () => {
                             <div class="highest-bid">Текущая ставка: {displayBid} ₽</div>
 
                             <form class="bid-form" onSubmit={handleBid}>
-                                <Input 
-                                    type="number" 
-                                    name= "bidInput"
-                                    class="bid-input" 
+                                <Input
+                                    type="number"
+                                    name="bidInput"
+                                    class="bid-input"
                                     placeholder={`Введите вашу ставку (мин. ${minBidValue + 1} ₽)`}
                                     min={minBidValue + 1}
                                     step="100"
                                 />
                                 <Button type="submit" class="btn-bid">Сделать ставку</Button>
                             </form>
-                         {error && (
+                            {error && (
                                 <div className="alert alert-error active" style={{ marginTop: '10px' }}>
-                                        {error} 
+                                    {error}
                                 </div>
                             )}
 
-                        {isOwner && (
-                            <Button type="button" className="btn-delete" onClick={handleDelete} style={{ marginTop: '10px', backgroundColor: '#dc2626' }}>
-                                 Удалить товар 
-                            </Button>
-                        )}
+                            {isOwner && (
+                                <Button type="button" className="btn-delete" onClick={handleDelete} style={{ marginTop: '10px', backgroundColor: '#dc2626' }}>
+                                    Удалить товар
+                                </Button>
+                            )}
                         </div>
 
                     </div>
@@ -139,29 +140,29 @@ const handleDelete = async () => {
                     <div class="bids-header">
                         <h2 class="bids-title">История ставок</h2>
                         <span class="bids-count">{bids.length}</span>
-                </div>
+                    </div>
 
                     <div class="bids-list">
                         {bids.map((bid, index) => (
                             <div key={bid.id || index} className={`bid-item ${index === 0 ? 'highest-bid-item' : ''}`} >
 
-                            <div class="bid-user">
-                                <div class="bid-avatar">{bid.username.slice(0, 2).toUpperCase()}</div>
-                                <div class="bid-details">
-                                    <span class="bid-username">{bid.username}</span>
-                                    <span class="bid-time">{new Date(bid.createdAt).toLocaleString("ru-RU")}</span>
+                                <div class="bid-user">
+                                    <div class="bid-avatar">{bid.username.slice(0, 2).toUpperCase()}</div>
+                                    <div class="bid-details">
+                                        <span class="bid-username">{bid.username}</span>
+                                        <span class="bid-time">{new Date(bid.createdAt).toLocaleString("ru-RU")}</span>
+                                    </div>
+                                    {index === 0 && <span className="highest-badge">🏆 Лидирует</span>}
                                 </div>
-                                {index === 0 && <span className="highest-badge">🏆 Лидирует</span>}
+                                <div class="bid-amount">{bid.amount} ₽</div>
                             </div>
-                            <div class="bid-amount">{bid.amount} ₽</div>
-                        </div>
                         ))}
-                     </div> 
-                 </div> 
+                    </div>
+                </div>
             </div>
-            
 
-   
+
+
         </div>
     )
 }

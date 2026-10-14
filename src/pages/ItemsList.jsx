@@ -11,6 +11,13 @@ const ItemsList = ({ title = 'Товары', showOwn = false }) => {
     const [error, setError] = useState(null)
     const [timerId, setTimerId] = useState(undefined)
 
+    const filteredItems = showOwn ? items.filter(el => el.userId === session?.user?.id) : items
+
+    const totalItems = filteredItems.length 
+    const totalBids = filteredItems.reduce((sum, item) => sum + (item.bidsCount || 0), 0) 
+    const activeItems = filteredItems.filter(item => item.isActive).length 
+    const averagePrice = totalItems > 0 ? (filteredItems.reduce((sum, item) => sum + (item.price || 0), 0) / totalItems).toFixed(2) : '0'
+
     useEffect(() => {
         const load = async () => {
             setIsLoading(true)
@@ -44,19 +51,19 @@ const ItemsList = ({ title = 'Товары', showOwn = false }) => {
             </div>
             <div class="stats">
                 <div class="stat-item">
-                    <span class="stat-value">0</span>
+                    <span class="stat-value">{totalItems}</span>
                     <span class="stat-label">Товаров</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-value">0</span>
+                    <span class="stat-value">{totalBids}</span>
                     <span class="stat-label">Ставок</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-value">0</span>
+                    <span class="stat-value">{activeItems}</span>
                     <span class="stat-label">Активных</span>
                 </div>
                 <div class="stat-item">
-                    <span class="stat-value">0₽</span>
+                    <span class="stat-value">{averagePrice}₽</span>
                     <span class="stat-label">Средняя цена</span>
                 </div>
             </div>
