@@ -17,10 +17,17 @@ apiInstance.interceptors.request.use((config) => {
     return config
 })
 
-const getItem = async () => {
+const getItems = async () => {
     const res = await apiInstance.get('/items')
     return res
 }
+
+
+const createBid = async ({ id, amount }) => {
+    const res = await apiInstance.post('/items/${id}/bids', {amount})
+    return res
+}
+
 const sendItem = async (item) => {
     const res = await apiInstance.post('/items', item)
     return res
@@ -61,10 +68,15 @@ const deleteItem = async (id) => {
 
 }
 
-const likeItem = async (id) => {
-    const res = await apiInstance.post(`/items/${id}/like`)
+const getItemBids = async (id) => {
+    const res = await apiInstance.get(`/items/${id}/bids`)
     return res
 
+}
+
+const getMyBids = async (id) => {
+    const res = await apiInstance.get(`/items/${id}/bids`)
+    return res
 }
 
 const authMe = async () => {
@@ -79,12 +91,14 @@ export const api = {
     registerUser,
     loginUser,
     sendItem,
-    getItem,
+    getItems,
     reportItem,
     getStats,
     getMyItem,
     deleteItem,
-    likeItem,
-    authMe
+    getItemBids,
+    authMe,
+    getMyBids,
+    createBid
 
 }

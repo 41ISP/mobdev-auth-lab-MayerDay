@@ -1,3 +1,5 @@
+import { api } from "../api/api"
+
 const ItemCard = ({
     status,
     title,
@@ -7,7 +9,14 @@ const ItemCard = ({
     username,
     highestBid,
     imageUrl,
+    id,
 }) => {
+
+        const handleDelete = async() =>{
+        await api.deleteItem(id)
+    }
+
+    
     return (
         <div className="item-card">
             <img src={imageUrl} class="item-image" />

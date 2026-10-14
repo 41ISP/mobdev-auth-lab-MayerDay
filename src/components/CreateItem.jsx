@@ -2,18 +2,21 @@ import { Link, useNavigate } from 'react-router-dom'
 import Input from './Input'
 import { useItemStore } from '../store/useItemStore'
 import { api } from '../api/api'
+import { useState } from 'react'
 
 const CreateItem = () => {
     const {getItems} = useItemStore()
     const navigate = useNavigate()
+    const [error, setError] = useState('');
+
     const handleSubmit = async (e) => {
+    setError(''); 
     e.preventDefault()
 
     const item = {
     title: e.target.title.value,
     description: e.target.description.value,
     price: parseInt(e.target.price.value),
-    imageUrl: e.target.imageUrl.value
     }
     if (e.target.imageUrl.value.trim() !== '') { item.imageUrl = e.target.imageUrl.value; }
     
@@ -109,7 +112,7 @@ const CreateItem = () => {
                     </div>
 
                     <div class="form-actions">
-                        <Link href="/" class="btn-cancel">
+                        <Link to="/" class="btn-cancel">
                             Отмена
                         </Link>
                         <button type="submit" class="btn-submit">

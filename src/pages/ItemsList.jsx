@@ -64,7 +64,7 @@ const ItemsList = ({ title = 'Товары', showOwn = false }) => {
             {!isloading && error && <p> {error} </p>}
             {!isloading && !error && items && (
                 <div class="items-grid">
-                    {showOwn ? item.filter(el => el.userId === session?.user.id).map((item, i) => (
+                    {showOwn ? items.filter(el => el.userId === session?.user.id).map((item, i) => (
                         <ItemCard key={i} {...item} />))
                         : items.map((item, i) => (
                             <ItemCard key={i} {...item} />
