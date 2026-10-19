@@ -30,16 +30,24 @@ const ItemDetail = () => {
         }
 
         loadItem()
-        loadBids()
-    }, [id])
 
+        if (session?.user) {
+            loadBids()
+        }
+    }, [id, session])
 
     if (!item) return <div className="container">Загрузка...</div>
 
     const handleBid = async (e) => {
         e.preventDefault()
-        setError('')
 
+        // Защита на случай обхода интерфейса
+        if (!session?.user) {
+            navigate('/login')
+            return
+        }
+
+        setError('')
         const form = e.target
         const amount = Number(form.bidInput.value)
         if (!amount || amount <= 0) {
@@ -51,17 +59,14 @@ const ItemDetail = () => {
             await api.createBid({ id, amount })
             form.reset()
             await loadBids()
-
         } catch (err) {
             setError(err.message || 'Не удалось сделать ставку')
         }
     }
 
-
     const displayBid = item.highestBid === null ? 'ставок нет' : item.highestBid
     const minBidValue = item.highestBid ?? item.price
     const formattedDate = new Date(item.createdAt).toLocaleString("ru-RU")
-
     const isOwner = session?.user?.id === item.userId
 
     const handleDelete = async () => {
@@ -75,7 +80,6 @@ const ItemDetail = () => {
 
     return (
         <div className="container">
-
             <Link to={"/"}>← Вернуться к списку товаров</Link>
 
             <div class="item-detail">
@@ -86,14 +90,12 @@ const ItemDetail = () => {
 
                     <div class="item-info">
                         <span class="item-status">{item.status}</span>
-
                         <h1 class="item-title-large">{item.title}</h1>
 
                         <div class="item-seller-info">
                             <div class="seller-avatar">
                                 {item.username.slice(0, 2).toUpperCase()}
                             </div>
-
                             <div class="seller-details">
                                 <div class="seller-name">{item.username}</div>
                                 <div class="seller-date">{formattedDate}</div>
@@ -109,17 +111,33 @@ const ItemDetail = () => {
                             <div class="current-price">{item.price} ₽</div>
                             <div class="highest-bid">Текущая ставка: {displayBid} ₽</div>
 
-                            <form class="bid-form" onSubmit={handleBid}>
-                                <Input
-                                    type="number"
-                                    name="bidInput"
-                                    class="bid-input"
-                                    placeholder={`Введите вашу ставку (мин. ${minBidValue + 1} ₽)`}
-                                    min={minBidValue + 1}
-                                    step="100"
-                                />
-                                <Button type="submit" class="btn-bid">Сделать ставку</Button>
-                            </form>
+                     
+                            {session?.user ? ( 
+                                <> 
+                                    {isOwner ? ( 
+                                        <div className="text-sm text-gray-500">Вы являетесь владельцем этого лота</div>
+                                    ) : item.status === 'active' ? (
+                                        <form class="bid-form" onSubmit={handleBid}>
+                                            <Input
+                                                type="number"
+                                                name="bidInput"
+                                                class="bid-input"
+                                                placeholder={`Введите вашу ставку (мин. ${minBidValue + 1} ₽)`}
+                                                min={minBidValue + 1}
+                                                step="100"
+                                            />
+                                            <Button type="submit" class="btn-bid">Сделать ставку</Button>
+                                        </form>
+                                    ) : ( 
+                                        <div className="text-sm text-gray-500">Торги по этому лоту завершены</div> 
+                                    )} 
+                                </>
+                            ) : ( 
+                                <Button onClick={() => navigate('/login')} class="btn-bid">
+                                    Войти, чтобы сделать ставку
+                                </Button> 
+                            )}
+
                             {error && (
                                 <div className="alert alert-error active" style={{ marginTop: '10px' }}>
                                     {error}
@@ -127,42 +145,50 @@ const ItemDetail = () => {
                             )}
 
                             {isOwner && (
-                                <Button type="button" className="btn-delete" onClick={handleDelete} style={{ marginTop: '10px', backgroundColor: '#dc2626' }}>
+                                <Button 
+                                    type="button" 
+                                    className="btn-delete" 
+                                    onClick={handleDelete} 
+                                    style={{ marginTop: '10px', backgroundColor: '#dc2626' }}
+                                >
                                     Удалить товар
                                 </Button>
                             )}
                         </div>
-
                     </div>
                 </div>
 
+                {/* Блок истории ставок */}
                 <div class="bids-section">
-                    <div class="bids-header">
-                        <h2 class="bids-title">История ставок</h2>
-                        <span class="bids-count">{bids.length}</span>
-                    </div>
-
-                    <div class="bids-list">
-                        {bids.map((bid, index) => (
-                            <div key={bid.id || index} className={`bid-item ${index === 0 ? 'highest-bid-item' : ''}`} >
-
-                                <div class="bid-user">
-                                    <div class="bid-avatar">{bid.username.slice(0, 2).toUpperCase()}</div>
-                                    <div class="bid-details">
-                                        <span class="bid-username">{bid.username}</span>
-                                        <span class="bid-time">{new Date(bid.createdAt).toLocaleString("ru-RU")}</span>
-                                    </div>
-                                    {index === 0 && <span className="highest-badge">🏆 Лидирует</span>}
-                                </div>
-                                <div class="bid-amount">{bid.amount} ₽</div>
+                    {session?.user && (
+                        <>
+                            <div class="bids-header">
+                                <h2 class="bids-title">История ставок</h2>
+                                <span class="bids-count">{bids.length}</span>
                             </div>
-                        ))}
-                    </div>
+                            <div class="bids-list">
+                                {bids.length > 0 ? (
+                                    bids.map((bid, index) => (
+                                        <div key={bid.id || index} className={`bid-item ${index === 0 ? 'highest-bid-item' : ''}`} >
+                                            <div class="bid-user">
+                                                <div class="bid-avatar">{bid.username.slice(0, 2).toUpperCase()}</div>
+                                                <div class="bid-details">
+                                                    <span class="bid-username">{bid.username}</span>
+                                                    <span class="bid-time">{new Date(bid.createdAt).toLocaleString("ru-RU")}</span>
+                                                </div>
+                                                {index === 0 && <span className="highest-badge">🏆 Лидирует</span>}
+                                            </div>
+                                            <div class="bid-amount">{bid.amount} ₽</div>
+                                        </div>
+                                    ))
+                                ) : (
+                                    <div className="text-gray-500">Ставок пока нет</div>
+                                )}
+                            </div>
+                        </>
+                    )}
                 </div>
             </div>
-
-
-
         </div>
     )
 }
